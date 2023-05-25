@@ -1,0 +1,101 @@
+crlf = chr(13) & chr(10) 
+
+testCPU = FALSE 
+testDB = FALSE 
+testLOCALDISK = TRUE 
+displayMsg = TRUE
+logToFile = FALSE
+msg = ""
+
+'prepare DLL for gettickcount
+DLLHandleName = "kernel32" 
+DLLstatus = DLLOpen(DLLHandleName, "kernel32.dll") 
+DLLargs[1] = "dum" 
+
+types[1] = "dum" 
+status = ClearArray("args") 
+status = ClearArray("types") 
+
+
+
+IF (testCPU) THEN
+	status = Execute("wmic cpu get name", 1, CurDir(), "F", "T", "retCodeVar", "cpuname", "stdErrVar") 
+	numElements = ArrayOfSubStrings(cpuname, crlf, "splitArr", ) 
+	cpuname = splitArr[3] 
+
+	x1 = DLLCall(DLLHandleName, "GetTickCount", args, types, "ulongReturn") 
+
+	status = ClearArray("a") 
+	a[1,1] = "test" 
+
+	FOR i = 1 TO 16 
+		status = ArrayJoin(a, a, "a", "Row") 'joinBy can be "Row" or "Column" 
+	NEXT 
+
+	x2 = DLLCall(DLLHandleName, "GetTickCount", args, types, "ulongReturn")  
+	elapsedTime = x2 - x1 
+
+	msg = msg & Str(DateTime()) & " " & GetComputerName() & " " & cpuname & crlf 
+	msg = msg & "CPU : " & Str(elapsedTime) & "ms (n=" & Str(UBound(a)) & ")" & crlf 
+ENDIF 
+
+
+IF (testDB) THEN
+	x1 = DLLCall(DLLHandleName, "GetTickCount", args, types, "ulongReturn")  
+
+	q = "WITH x AS (SELECT n FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) v(n))," & crlf 
+	q = q & "n as (SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) n FROM x ones, x tens, x hundreds, x thousands, x tenthousands, x hundredthousands, x million)" & crlf 
+	q = q & "SELECT cast(n as int) n, space(1900) sp" & crlf 
+	q = q & "into _bench_insert" & crlf 
+	q = q & "FROM n WHERE n.n <= 100000" & crlf 
+	status = SQL(q,"dum") 
+
+	x2 = DLLCall(DLLHandleName, "GetTickCount", args, types, "ulongReturn")   
+	elapsedTime = x2 - x1  
+
+
+	q = "SELECT CAST(ROUND(((SUM(a.total_pages) * 8) / 1024.00), 2) AS NUMERIC(36, 2)) AS TotalSpaceMB" & crlf 
+	q = q & "FROM sys.tables t INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id" & crlf 
+	q = q & "INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p.index_id" & crlf 
+	q = q & "INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id" & crlf 
+	q = q & "WHERE t.NAME = '_bench_insert'" & crlf 
+	status = SQL(q,"tableSizeArr") 
+	tableSize = tableSizeArr[1,1] 
+
+
+	q = "drop table _bench_insert" 
+	status = SQL(q,"dum") 
+
+	diskTrouhgput = tableSize / elapsedTime * 1000.0 
+
+	msg = msg & "SQL : " & Str(diskTrouhgput) & " MB/s (" & Str(tableSize) & "MB, " & Str(elapsedTime) & " ms)" 
+ENDIF 
+
+IF (testLOCALDISK) THEN
+	x1 = DLLCall(DLLHandleName, "GetTickCount", args, types, "ulongReturn")  
+
+	FOR i = 1 TO 1000
+		status = FileWriteContents("testperf" & Str(i) & ".txt", "test", "T") 
+	NEXT 
+
+	FOR i = 1 TO 1000
+		status = FileKill("testperf" & Str(i) & ".txt", "test") 
+	NEXT 
+	
+	x2 = DLLCall(DLLHandleName, "GetTickCount", args, types, "ulongReturn")   
+	elapsedTime = x2 - x1  
+
+	msg = msg & "Local disk (1000x new file + delete) : " & Str(elapsedTime) & " ms" 
+ENDIF 
+
+IF (displayMsg) THEN
+	Msgbox(msg) 
+ENDIF 
+
+IF (logToFile) THEN
+	fileName = "perflog.log" 
+	status = FileOpen(fileName) 
+	status = FileBottom(fileName) 
+	status = FileWrite(fileName, msg, "T") 
+	status = FileClose(fileName) 
+ENDIF 
