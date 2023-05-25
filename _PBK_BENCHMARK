@@ -7,8 +7,7 @@ testDB = FALSE
 
 testDisk = TRUE 
 testDiskNum = 10
-testDiskPath = "\\neriisstoprd01.file.core.windows.net\dsl-dev\LIMS ANALYSE\LIMS ANALYSE\PBK\testperf\"
-'testDiskPath = CurDir() & "\"
+testDiskPath = CurDir() & "\"
 
 displayMsg = TRUE
 logToFile = FALSE
