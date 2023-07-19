@@ -17,7 +17,6 @@ status = CurlEasySetWriteData(curlSessionName, "responseText", FALSE)
 
 '** POST JSON 
 'status = CurlSListAppend(curlSessionName, "headers", "Content-Type: application/json") 
-'status = CurlSListAppend(curlSessionName, "headers", "Content-Type: " & contentType) 
 'status = CurlEasySetOption(curlSessionName, "CURLOPT_POSTFIELDS", postData) 
 'status = CurlEasySetOption(curlSessionName, "CURLOPT_HTTPHEADER", , , "headers") 
 
