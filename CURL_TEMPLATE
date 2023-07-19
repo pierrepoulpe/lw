@@ -1,0 +1,48 @@
+'** Create Session Name and Initiate 
+curlSessionName = "LIBCURL_SESSION_" & Str(GetMemoryIncrement("LIBCURL_SESSION")) 
+status = CurlEasyInit(curlSessionName) 
+
+'Si on veut curl.log
+curlDebug = FALSE 
+IF (curlDebug) THEN
+	status = FileKill("curl.log") 
+	status = DebugOn() 
+	status = CurlEasySetOption(curlSessionName, "CURLOPT_VERBOSE", TRUE)
+ENDIF 
+
+'** URL & return variable 
+status = CurlEasySetOption(curlSessionName, "CURLOPT_URL", curlUrl) 
+status = CurlEasySetWriteData(curlSessionName, "responseText", FALSE) 
+
+
+'** POST JSON 
+'status = CurlSListAppend(curlSessionName, "headers", "Content-Type: application/json") 
+'status = CurlSListAppend(curlSessionName, "headers", "Content-Type: " & contentType) 
+'status = CurlEasySetOption(curlSessionName, "CURLOPT_POSTFIELDS", postData) 
+'status = CurlEasySetOption(curlSessionName, "CURLOPT_HTTPHEADER", , , "headers") 
+
+'Suspicion de timeout dû au certificat serveur qui doit être vérifié trop souvent 
+'status = CurlEasySetOption(curlSessionName, "CURLOPT_SSL_OPTIONS", 2) 'CURLSSLOPT_NO_REVOKE 
+
+'User/pwd?
+'status = CurlEasySetOption(curlSessionName, "CURLOPT_USERPWD", "user:pwd")
+
+
+'** Perform Session and get info about session 
+status = CurlEasyPerform(curlSessionName) 
+responseCode = CurlEasyGetInfo(curlSessionName, "CURLINFO_RESPONSE_CODE") 
+
+
+IF (responseCode = 200) THEN
+	Msgbox(responseText)
+ELSE 
+	Msgbox(Str(responseCode) & Chr(13) & responseText & chr(13) & lastError)
+ENDIF 
+
+
+'** Cleanup 
+status = CurlEasyCleanup(curlSessionName) 
+IF (curlDebug) THEN
+	status = DebugOff() 
+	status = ShellCommand("curl.log", "OPEN", "F", ) 
+ENDIF 
