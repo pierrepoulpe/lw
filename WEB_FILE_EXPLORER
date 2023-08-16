@@ -1,0 +1,73 @@
+fileDir = GetGlobalVariable("FILESEND_LASTDIR")  
+IF (fileDir = ERROR) THEN 
+    fileDir = ServerDir()
+ENDIF  
+ 
+fileDir = InputBox("","",fileDir )  
+ 
+IF (Right(fileDir, 1) <> "\") THEN 
+    fileDir = filedir & "\" 
+ENDIF  
+ 
+headerArr[1] = "---" 
+headerArr[2] = "nom" 
+headerArr[3] = "taille" 
+headerArr[4] = "date modif" 
+ 
+inLoop = TRUE   
+DO WHILE (inLoop) 
+    status = ClearArray("selectArr")  
+    selectArr[1,1] = "-->" 
+    selectArr[1,2] = ".." 
+    selectArr[1,3] = "" 
+    selectArr[1,4] = "" 
+ 
+     
+    status = DirFiles(fileDir, "*", "filesArr", "subDirArr")  
+    filesNum = GetMaxArrayIndex(filesArr, 1)  
+    subdirNum = GetMaxArrayIndex(subDirArr, 1) 
+     
+    IF (subdirNum > 0) THEN 
+         
+        status = ArrayInitialize("tmpArr", subdirNum, 1, "-->")  
+        status = ArrayJoin(tmpArr, subdirArr, "subdirSelectArr", "Column")  
+        status = ArrayInitialize("tmpArr", subdirNum, 2, "-")  
+        status = ArrayJoin(subdirSelectArr, tmpArr, "subdirSelectArr", "Column")  
+         
+        status = ArrayJoin(selectArr, subdirSelectArr, "selectArr", "Row")  
+    ENDIF  
+     
+    IF (filesNum > 0) THEN 
+        status = ArraySubset(filesArr, "filesNameArr", 1, filesNum, 1, 3)  
+        status = ArrayInitialize("tmpArr", filesNum, 1, " ")  
+        status = ArrayJoin(tmpArr, filesNameArr, "filesSelectArr", "Column")  
+        status = ArrayJoin(selectArr, filesSelectArr, "selectArr", "Row")  
+    ENDIF  
+     
+     
+     
+     
+ 
+    numSelections = MultiColumnSelectFromArray(selectArr, fileDir, "selectedArr", headerArr)  
+    IF (numSelections = 1) THEN 
+        selectedLevel = selectedArr[1,1] 
+        selectedName = selectedArr[1,2] 
+ 
+        IF (selectedLevel = "-->") THEN 
+            IF (selectedName = "..") THEN 
+                splitNum = ArrayOfSubStrings(fileDir, "\","splitArr","F")  
+                lastDir = splitArr[splitNum] 
+                fileDir = Left(fileDir, Len(fileDir) - Len(lastDir) - 1) 
+            ELSE  
+                fileDir = fileDir & selectedName & "\" 
+            ENDIF 
+        ELSE  
+            fileFullPath = fileDir & selectedName  
+            status = FileSend(fileFullPath)  
+        ENDIF  
+    ELSE  
+        inloop = FALSE  
+    ENDIF  
+LOOP  
+ 
+status = SetGlobalVariable("FILESEND_LASTDIR", fileDir) 
